@@ -1,5 +1,13 @@
 "use strict";
 
+const SETTINGS = {
+	quality: false,
+	showFPS: undefined,
+	enableShake: undefined,
+	showHud: undefined,
+	shaderOption: undefined,
+};
+
 function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 	const r = new RandomTimer(0.06);
 	let r2 = 0;
@@ -35,6 +43,11 @@ function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 
 	this.small = function() {
 		_small = true;
+		return this;
+	}
+
+	this.fast = function(fast) {
+		if (fast) entry = 0.99;
 		return this;
 	}
 
@@ -113,6 +126,41 @@ function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 }
 
 function Menu(gl, shader, colorShader, textShader, mouse) {
+	/*SETTINGS.quality = localStorage.getItem("anttivainio_rajaton_quality");
+	if (SETTINGS.quality === undefined || SETTINGS.quality === null) SETTINGS.quality = true;
+	else SETTINGS.quality = SETTINGS.quality === "1";
+	if (SETTINGS.quality !== false && SETTINGS.quality !== true) SETTINGS.quality = true;*/
+
+	SETTINGS.showFPS = localStorage.getItem("anttivainio_rajaton_FPS");
+	if (SETTINGS.showFPS === undefined || SETTINGS.showFPS === null) SETTINGS.showFPS = false;
+	else SETTINGS.showFPS = SETTINGS.showFPS === "1";
+	if (SETTINGS.showFPS !== false && SETTINGS.showFPS !== true) SETTINGS.showFPS = false;
+
+	SETTINGS.enableShake = localStorage.getItem("anttivainio_rajaton_shake");
+	if (SETTINGS.enableShake === undefined || SETTINGS.enableShake === null) SETTINGS.enableShake = true;
+	else SETTINGS.enableShake = SETTINGS.enableShake === "1";
+	if (SETTINGS.enableShake !== false && SETTINGS.enableShake !== true) SETTINGS.enableShake = true;
+
+	SETTINGS.showHud = localStorage.getItem("anttivainio_rajaton_hud");
+	if (SETTINGS.showHud === undefined || SETTINGS.showHud === null) SETTINGS.showHud = true;
+	else SETTINGS.showHud = SETTINGS.showHud === "1";
+	if (SETTINGS.showHud !== false && SETTINGS.showHud !== true) SETTINGS.showHud = true;
+
+	SETTINGS.shaderOption = localStorage.getItem("anttivainio_rajaton_shader");
+	if (SETTINGS.shaderOption === undefined || SETTINGS.shaderOption === null) SETTINGS.shaderOption = 0;
+	else SETTINGS.shaderOption = Number(SETTINGS.shaderOption);
+	if (SETTINGS.shaderOption !== 0 && SETTINGS.shaderOption !== 1) SETTINGS.shaderOption = 0;
+
+	SOUND_VOL = localStorage.getItem("anttivainio_rajaton_soundVol");
+	if (SOUND_VOL === undefined || SOUND_VOL === null) SOUND_VOL = DEFAULT_SOUND_VOL;
+	else SOUND_VOL = Number(SOUND_VOL);
+	if (SOUND_VOL < 0 || SOUND_VOL > 100) SOUND_VOL = DEFAULT_SOUND_VOL;
+
+	MUSIC_VOL = localStorage.getItem("anttivainio_rajaton_musicVol");
+	if (MUSIC_VOL === undefined || MUSIC_VOL === null) MUSIC_VOL = DEFAULT_MUSIC_VOL;
+	else MUSIC_VOL = Number(MUSIC_VOL);
+	if (MUSIC_VOL < 0 || MUSIC_VOL > 100) MUSIC_VOL = DEFAULT_MUSIC_VOL;
+
 	const textBox = new Text(gl, textShader);
 	const box = new Box(gl, colorShader);
 	const targetBox = new BoxTex(gl, shader, "target2");
@@ -132,21 +180,6 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 	let difficultyButtons;
 	let callbacks;
 
-	const SETTINGS_AMOUNT = 3;
-	let quality;
-	let showFPS;
-	let enableShake;
-
-	SOUND_VOL = localStorage.getItem("anttivainio_rajaton_soundVol");
-	if (SOUND_VOL === undefined || SOUND_VOL === null) SOUND_VOL = DEFAULT_SOUND_VOL;
-	else SOUND_VOL = Number(SOUND_VOL);
-	if (SOUND_VOL < 0 || SOUND_VOL > 100) SOUND_VOL = DEFAULT_SOUND_VOL;
-
-	MUSIC_VOL = localStorage.getItem("anttivainio_rajaton_musicVol");
-	if (MUSIC_VOL === undefined || MUSIC_VOL === null) MUSIC_VOL = DEFAULT_MUSIC_VOL;
-	else MUSIC_VOL = Number(MUSIC_VOL);
-	if (MUSIC_VOL < 0 || MUSIC_VOL > 100) MUSIC_VOL = DEFAULT_MUSIC_VOL;
-
 	function removeButtons() {
 		grace = 0.1;
 		for (const i in buttons) buttons[i].remove();
@@ -160,21 +193,25 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 		if (level > this.getLevel()) localStorage.setItem("anttivainio_rajaton_level", String(level));
 	}
 
-	this.setSettings = function(s) {
+	this.setSettings = function(s, fast = false) {
 		settings = s;
 		if (s) {
 			removeButtons();
-			buttons.splice(0, 0, new Button(true, "BACK", 0, 0.7, 0.075, 1.2));
-			buttons.splice(0, 0, new Button(true, "MUSIC VOL: ", 0, 0.4, 0.075, 1.2).volume(2));
-			buttons.splice(0, 0, new Button(true, "SOUND VOL: ", 0, 0.1, 0.075, 1.2).volume(1));
-			buttons.splice(0, 0, new Button(true, "FPS: " + (showFPS ? "SHOW" : "HIDE"), 0, -0.2, 0.075, 1.2));
-			buttons.splice(0, 0, new Button(true, "SHAKE: " + (enableShake ? "ON" : "OFF"), 0, -0.5, 0.075, 1.2));
-			buttons.splice(0, 0, new Button(true, "QUALITY: " + (quality ? "HIGH" : "LOW"), 0, -0.8, 0.075, 1.2));
+			if (fast) buttons.splice(0, buttons.length);
+			const extraSetting = this.getLevel() >= 50;
+			const y = extraSetting ? 0.1 : 0;
+			buttons.splice(0, 0, new Button(true, "BACK", 0, y + 0.6, 0.07, 1.2).fast(fast));
+			buttons.splice(0, 0, new Button(true, "MUSIC VOL: ", 0, y + 0.35, 0.07, 1.2).volume(2).fast(fast));
+			buttons.splice(0, 0, new Button(true, "SOUND VOL: ", 0, y + 0.1, 0.07, 1.2).volume(1).fast(fast));
+			buttons.splice(0, 0, new Button(true, "FPS: " + (SETTINGS.showFPS ? "SHOW" : "HIDE"), 0, y - 0.15, 0.07, 1.2).fast(fast));
+			buttons.splice(0, 0, new Button(true, "HUD: " + (SETTINGS.showHud ? "SHOW" : "HIDE"), 0, y - 0.4, 0.07, 1.2).fast(fast));
+			buttons.splice(0, 0, new Button(true, "SHAKE: " + (SETTINGS.enableShake ? "ON" : "OFF"), 0, y - 0.65, 0.07, 1.2).fast(fast));
+			buttons.splice(0, 0, new Button(true, SETTINGS.shaderOption ? "BLACK AND WHITE" : "DRAW COLORS", 0, extraSetting ? y - 0.9 : -10, 0.07, 1.2).fast(fast));
 		}
 		else {
 			const fun = state === 1 ? this.setPause : this.setMain;
 			state = 0;
-			fun(callbacks, quality, showFPS, enableShake);
+			fun(callbacks);
 		}
 	}
 
@@ -212,7 +249,7 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 		}
 		else {
 			state = 0;
-			this.setMain(callbacks, quality, showFPS, enableShake);
+			this.setMain(callbacks);
 		}
 	}
 
@@ -226,13 +263,10 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 		}
 	}
 
-	this.setPause = function(cb, _quality, fps, shake) {
+	this.setPause = function(cb) {
 		if (state != 1) {
 			state = 1;
 			callbacks = cb;
-			quality = _quality;
-			showFPS = fps;
-			enableShake = shake;
 			removeButtons();
 			buttons.splice(0, 0, new Button(true, "EXIT TO MENU", 0, 0.35, 0.1, 0.9));
 			buttons.splice(0, 0, new Button(true, "SETTINGS", 0, -0.05, 0.1, 1.2));
@@ -240,13 +274,10 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 		}
 	}
 
-	this.setMain = function(cb, _quality, fps, shake) {
+	this.setMain = function(cb) {
 		if (state != 2) {
 			state = 2;
 			callbacks = cb;
-			quality = _quality;
-			showFPS = fps;
-			enableShake = shake;
 			removeButtons();
 
 			const NAME = "RAJATON";
@@ -292,7 +323,7 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 			return;
 		}
 
-		const clickDifficulty = d => { difficulty = false; return callbacks[SETTINGS_AMOUNT](d); };
+		const clickDifficulty = d => { difficulty = false; return callbacks[0](d); };
 		if (difficulty && difficultyButtons.length <= 1) return clickDifficulty(0);
 
 		if (mouse[1]) down = true;
@@ -300,24 +331,26 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 			down = false;
 			if (settings) {
 				if (buttons[0].hover()) {
-					callbacks[0]();
-					quality = !quality;
-					localStorage.setItem("anttivainio_rajaton_quality", quality ? "1" : "0");
-					return this.setSettings(true);
+					SETTINGS.shaderOption = (SETTINGS.shaderOption + 1) % 2;
+					localStorage.setItem("anttivainio_rajaton_shader", SETTINGS.shaderOption.toString());
+					return this.setSettings(true, true);
 				}
 				if (buttons[1].hover()) {
-					callbacks[1]();
-					enableShake = !enableShake;
-					localStorage.setItem("anttivainio_rajaton_shake", enableShake ? "1" : "0");
-					return this.setSettings(true);
+					SETTINGS.enableShake = !SETTINGS.enableShake;
+					localStorage.setItem("anttivainio_rajaton_shake", SETTINGS.enableShake ? "1" : "0");
+					return this.setSettings(true, true);
 				}
 				if (buttons[2].hover()) {
-					callbacks[2]();
-					showFPS = !showFPS;
-					localStorage.setItem("anttivainio_rajaton_FPS", showFPS ? "1" : "0");
-					return this.setSettings(true);
+					SETTINGS.showHud = !SETTINGS.showHud;
+					localStorage.setItem("anttivainio_rajaton_hud", SETTINGS.showHud ? "1" : "0");
+					return this.setSettings(true, true);
 				}
-				if (buttons[SETTINGS_AMOUNT + 2].hover()) return this.setSettings(false);
+				if (buttons[3].hover()) {
+					SETTINGS.showFPS = !SETTINGS.showFPS;
+					localStorage.setItem("anttivainio_rajaton_FPS", SETTINGS.showFPS ? "1" : "0");
+					return this.setSettings(true, true);
+				}
+				if (buttons[6].hover()) return this.setSettings(false);
 			}
 			else if (difficulty) {
 				if (buttons[0].hover()) return this.setDifficulty(false);
@@ -326,9 +359,9 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 				}
 			}
 			else if (state === 1) { // pause
-				if (buttons[0].hover()) return callbacks[SETTINGS_AMOUNT]();
+				if (buttons[0].hover()) return callbacks[0]();
 				if (buttons[1].hover()) return this.setSettings(true);
-				if (buttons[2].hover()) return callbacks[SETTINGS_AMOUNT + 1]();
+				if (buttons[2].hover()) return callbacks[1]();
 			}
 			else if (state === 2) { // main
 				if (buttons[0].hover()) return this.setDifficulty(true);

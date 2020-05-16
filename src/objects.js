@@ -48,12 +48,12 @@ function Particle1(x, y, sx, sy, size, size2, color) {
 }
 
 function Blood(x, y, sx, sy, collectible) {
-	const SIZE = collectible ? 0.033 : 0.022;
+	const SIZE = collectible ? 0.033 : 0.027;
 	const DARK = 0.8;
 	const DRAINDIST = 0.3;
 
-	const sizex = (randInt(0, 1) * 2 - 1) * SIZE * rand(0.4, 1.6);
-	const sizey = (randInt(0, 1) * 2 - 1) * SIZE * rand(0.4, 1.6);
+	const sizex = (randInt(0, 1) * 2 - 1) * SIZE * rand(collectible ? 0.8 : 0.55, 1.6);
+	const sizey = (randInt(0, 1) * 2 - 1) * SIZE * rand(collectible ? 0.8 : 0.55, 1.6);
 	let stop = false;
 	let fall = 0;
 	let dormant = 0;
@@ -68,7 +68,7 @@ function Blood(x, y, sx, sy, collectible) {
 	}
 
 	this.act = function(delta, world) {
-		dormant += delta * 0.5;
+		dormant += delta * 0.75;
 		if (fall > 0) {
 			fall -= delta;
 			if (fall <= 0) {
@@ -108,8 +108,9 @@ function Blood(x, y, sx, sy, collectible) {
 	}
 
 	this.draw = function(box, bloom) {
-		const color = collectible ? clamp(mix(bloom ? 0.75: 0, 1, DARK * 0.5, 1, dormant), 0, 1) : DARK;
-		box.draw(toWorldX(x), toWorldY(y), sizex * (stop ? 1 : 1.6), sizey * (stop ? 1 : 1.6), [color, color, color, 1]);
+		const color = (collectible ? clamp(mix(bloom ? 0.75 : 0, 1, DARK * 0.5, 1, dormant), 0, 1) : DARK) * 1.35;
+		const grey = Math.min(1, dormant) * 0.65;
+		box.draw(toWorldX(x), toWorldY(y), sizex * (stop ? 1 : 1.6), sizey * (stop ? 1 : 1.6), [color - grey, color, color, 1]);
 	}
 
 	this.drain = function(delta, pos, size) {
@@ -118,8 +119,12 @@ function Blood(x, y, sx, sy, collectible) {
 			if (l < DRAINDIST && l > 0) {
 				stop = false;
 				fall = 0;
-				sx += (pos[0] - x) / l * (DRAINDIST - l) * delta * 70;
-				sy += (pos[1] - y) / l * (DRAINDIST - l) * delta * 70;
+				const newsx = (pos[0] - x) / l * (DRAINDIST - l) * 15;
+				const newsy = (pos[1] - y) / l * (DRAINDIST - l) * 15;
+				if (newsx * newsx + newsy * newsy > sx * sx + sy * sy) {
+					sx = newsx;
+					sy = newsy;
+				}
 			}
 			return l < Math.sqrt(sx * sx * delta * delta + sy * sy * delta * delta) + size;
 		}

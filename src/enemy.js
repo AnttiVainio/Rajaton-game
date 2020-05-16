@@ -4,7 +4,7 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 	const COLOR = new Bullet(null, null, null, null, null, null, null, air, blood, water, lava);
 	const human = new Human(gl, shader, colorShader, world.getArena(), COLOR, [...RGBFromHue(rand(0, 360)), 1], STATS.enemy(stats), gun, world, x, y, id);
 
-	const PROXIMITY = STATS.enemy(stats).proximity * (human.spec() ? 3 : 1);
+	const PROXIMITY = human.spec() === 2 ? 10 : STATS.enemy(stats).proximity * (human.spec() ? 3 : 1);
 	const REACTION = STATS.enemy(stats).reaction * (human.spec() ? 0.5 : 1);
 	const CHASE = STATS.enemy(stats).chase;
 
@@ -28,7 +28,7 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 		return toWorldX(pos[0]) < -ACT_DIST || toWorldX(pos[0]) > ACT_DIST || toWorldY(pos[1]) < -ACT_DIST || toWorldY(pos[1]) > ACT_DIST;
 	}
 
-	this.act = function(delta, bullets, ppos, playerBullets) {
+	this.act = function(delta, bullets, ppos, playerBullets, mimicStats) {
 		const pos = human.getPos();
 		if (skip(pos)) return;
 
@@ -47,13 +47,14 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 		if (think < 0) {
 			think += REACTION;
 
+			let c = false;
 			if (l < PROXIMITY || ((chase > 0 || (!human.getFlip() && ppos[0] > pos[0]) || (human.getFlip() && ppos[0] < pos[0])) &&
 				l < 1.5 + Math.max(0, chase))) {
 
-				const c = world.collision(pos[0], pos[1], ppos[0], ppos[1]);
-				if (!c) {
+				c = world.collision(pos[0], pos[1], ppos[0], ppos[1]);
+				if (!c || human.spec() === 2) {
 					wander = false;
-					shoot = rand(0, REACTION * 1.5);
+					if (!c) shoot = rand(0, REACTION * 1.5);
 					chase = CHASE;
 					mx = ppos[0];
 					my = ppos[1];
@@ -65,7 +66,7 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 				left = 0;
 				if (mx < pos[0]) left = CHASE;
 				else right = CHASE;
-				if (my + 0.5 < pos[1]) up = CHASE;
+				if (my + (c ? 0 : 0.5) < pos[1]) up = CHASE;
 				else up = 0;
 			}
 
@@ -86,7 +87,7 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 			right > 0,
 			left > 0,
 			shoot > 0,
-			air, blood, water, lava);
+			air, blood, water, lava, mimicStats);
 
 		// bullet collision
 		const allBullets = [...bullets, ...playerBullets];
@@ -167,7 +168,7 @@ function Enemies(gl, shader, colorShader, LEVEL, world, player, extraInitial) {
 				spawn -= 1;
 				spawnEnemy();
 			}
-			actObjects(enemies, delta, bullets, player.getPos(), player.getBullets());
+			actObjects(enemies, delta, bullets, player.getPos(), player.getBullets(), player.getMimicStats());
 		}
 		actObjects(bullets, delta, world);
 		for (const i in bullets) player.getHit(bullets[i]);

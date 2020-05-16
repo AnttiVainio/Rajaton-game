@@ -22,6 +22,9 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 	const ARROW_SIZE = 0.05;
 	const SELECT_VOL = 0.6;
 
+	const BLOOD_AIR_PARTICLES = 4;
+	const FLUID_AIR_PARTICLES = 1;
+
 	const RECHARGE = STATS_PLAYER.rechargeTime;
 	const JETPACK_DRAIN = STATS_PLAYER.jetpackDrain;
 	const BLOOD_CONVERSION = STATS_PLAYER.bloodConversion;
@@ -45,7 +48,7 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 
 	const x = world.getStart()[0];
 	const y = world.getStart()[1];
-	const human = new Human(gl, shader, colorShader, true, [0.3, 0.5, 0.1, 1], [0.1, 0.3, 1, 1], STATS_PLAYER, gun, world, x, y);
+	const human = new Human(gl, shader, colorShader, true, null, null, STATS_PLAYER, gun, world, x, y);
 	if (inventory) human.modHealth(inventory.health - STATS_PLAYER.health, Math.max(1, STATS_PLAYER.armor));
 
 	let camerax = x;
@@ -90,13 +93,15 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 	this.getInventory = () => ({gunSelection, health: human.getHealth(), air, blood, water, lava});
 	this.stopSounds = () => human.stopSounds();
 
+	let mimicStats;
+	this.getMimicStats = () => mimicStats;
+
 	this.quit = function() {
 		menu = true;
 	}
 
-	let enableShake = false;
 	this.shakeCamera = function(damage) {
-		if (enableShake) {
+		if (SETTINGS.enableShake) {
 			cameraShakex += rand(-1, 1) * (Math.min(15, damage) + 2) * SHAKE_AMOUNT;
 			cameraShakey += rand(-1, 1) * (Math.min(15, damage) + 2) * SHAKE_AMOUNT;
 		}
@@ -107,8 +112,13 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 		if (damage) this.shakeCamera(damage);
 	}
 
-	this.act = function(delta, _enableShake, mToGamex, mToGamey) {
-		enableShake = _enableShake;
+	function createAirParticle(color) {
+		const v = rotateVector([human.getSize() * (color ? 4 : 6), 0], randDir());
+		const pos = human.getPos();
+		particles.createAir(pos[0] + v[0], pos[1] + v[1], -v[0] * 1.8, -v[1] * 1.8, color);
+	}
+
+	this.act = function(delta, mToGamex, mToGamey) {
 		bloodGlow -= delta * 0.4;
 		waterGlow -= delta * 0.4;
 		lavaGlow -= delta * 0.4;
@@ -129,7 +139,11 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 		const delta2 = delta * human.getTimescale();
 		let cameraDelta = delta2;
 
+		let arena = false;
+
 		if (human.isActive()) {
+			arena = world.getArena(human.getPos()[0]);
+
 			gunText -= delta * 0.3;
 
 			if (air < 80 && (
@@ -149,9 +163,7 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 				rechargeParticles += delta2 * 100;
 				while (rechargeParticles > 0) {
 					rechargeParticles--;
-					const v = rotateVector([human.getSize() * 6, 0], randDir());
-					const pos = human.getPos();
-					particles.createAir(pos[0] + v[0], pos[1] + v[1], -v[0] * 1.8, -v[1] * 1.8);
+					createAirParticle();
 				}
 				const shake = Math.round(recharge * 18);
 				recharge -= delta2;
@@ -231,6 +243,14 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 					if (drain > 0 && air > 0) { shoot_a = air > drain ? drainMult : air / drain; air -= drain; }
 				}
 
+				if (mimicStats || (mx && my)) {
+					mimicStats = [up,
+						keyboard.has(68) || keyboard.has(39),
+						keyboard.has(65) || keyboard.has(37),
+						shoot,
+						mx === undefined ? mimicStats[4] : mx - human.getPos()[0],
+						my === undefined ? mimicStats[5] : my - human.getPos()[1]];
+				}
 				if (human.act(delta, bullets, this.shakeCamera, false, mx, my,
 					up,
 					keyboard.has(68) || keyboard.has(39),
@@ -239,7 +259,6 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 					this.shakeCamera(Math.sqrt(5 / gun.shootSpeed * gun.damage * (gun.penetration || 1) * (gun.bullets || 1)) - 1);
 				}
 
-				const arena = world.getArena(human.getPos()[0]);
 				if (arena) {
 					if (!arenaEntered) {
 						arenaEntered = true;
@@ -247,10 +266,6 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 						playSong(song);
 						world.setArenaTime(songLength(song));
 					}
-					const cameraMult = Math.min(3, world.getArena()) / 3;
-					camerax = camerax * (1 - cameraMult) + arena[0] * cameraMult;
-					cameray = cameray * (1 - cameraMult) + arena[1] * cameraMult;
-					cameraDelta = mix(0, 1, cameraDelta, 0.05, cameraMult);
 				}
 				else if (arenaEntered) {
 					arenaEntered = false;
@@ -263,11 +278,13 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 			}
 
 			if (blood < 100) {
-				const moreBlood = particles.drainBlood(delta, human.getPos(), human.getSize());
+				let moreBlood = particles.drainBlood(delta, human.getPos(), human.getSize());
 				if (moreBlood > 0) {
 					playDrainSound();
 					bloodGlow = Math.min(1, Math.max(0, bloodGlow) + moreBlood * BLOOD_CONVERSION * 0.075);
 					blood = Math.min(100, blood + BLOOD_CONVERSION * moreBlood);
+					moreBlood *= BLOOD_AIR_PARTICLES;
+					while (moreBlood-- > 0) createAirParticle([2, 0.4, 0.4]);
 				}
 			}
 			healFade -= delta2;
@@ -281,19 +298,23 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 				}
 			}
 			if (water < 100) {
-				const moreWater = fluid.drainWater(delta, human.getPos(), human.getSize());
+				let moreWater = fluid.drainWater(delta, human.getPos(), human.getSize());
 				if (moreWater > 0) {
 					playDrainSound();
 					waterGlow = Math.min(1, Math.max(0, waterGlow) + moreWater * FLUID_CONVERSION * 0.1);
 					water = Math.min(100, water + FLUID_CONVERSION * moreWater);
+					moreWater *= FLUID_AIR_PARTICLES;
+					while (moreWater-- > 0) createAirParticle([0, 1, 1]);
 				}
 			}
 			if (lava < 100) {
-				const moreLava = fluid.drainLava(delta, human.getPos(), human.getSize());
+				let moreLava = fluid.drainLava(delta, human.getPos(), human.getSize());
 				if (moreLava > 0) {
 					playDrainSound();
 					lavaGlow = Math.min(1, Math.max(0, lavaGlow) + moreLava * FLUID_CONVERSION * 0.1);
 					lava = Math.min(100, lava + FLUID_CONVERSION * moreLava);
+					moreLava *= FLUID_AIR_PARTICLES;
+					while (moreLava-- > 0) createAirParticle([1.5, 0.75, 0]);
 				}
 			}
 		}
@@ -301,14 +322,21 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 
 		actObjects(bullets, delta, world);
 
+		if (arena) {
+			const cameraMult = Math.min(3, world.getArena()) / 3;
+			camerax = camerax * (1 - cameraMult) + arena[0] * cameraMult;
+			cameray = cameray * (1 - cameraMult) + arena[1] * cameraMult;
+			cameraDelta = mix(0, 1, cameraDelta, 0.05, cameraMult);
+		}
 		if (recharge <= 0) {
 			const camera = human.getCamera(cameraDelta, camerax + cameraShakex, cameray + cameraShakey);
 			camerax = camera[0];
 			cameray = camera[1];
 		}
 		else {
-			camerax += cameraShakex;
-			cameray += cameraShakey;
+			const camera = human.getCamera(cameraDelta, camerax, cameray);
+			camerax = camera[0] + cameraShakex;
+			cameray = camera[1] + cameraShakey;
 		}
 		updateCamera(camerax, cameray);
 		cameraShakex -= cameraShakex * Math.min(1, delta * 40);

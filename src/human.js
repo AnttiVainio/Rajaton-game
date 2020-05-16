@@ -18,10 +18,24 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 	const AIR1_VOL = 0.09;
 	const AIR2_VOL = 0.13;
 
-	const special = !stats.player && !randInt(0, 30);
-	if (special) {
-		color = [0, 0, 0, 1];
-		visorColor = [1, 1, 1, 1];
+	let special = 0;
+	let mimic = false;
+	if (!stats.player) {
+		if (!randInt(0, 30)) special = 1;
+		if (special) {
+			color = [0, 0, 0, 1];
+			visorColor = [1.5, 1.5, 1.5, 1];
+		}
+		if (!randInt(0, 40)) special = 2;
+		if (special === 2) {
+			color = [3, 3, 3, 1];
+			visorColor = [1.5, 0, 0, 1];
+		}
+		if (!special && !randInt(0, 80)) mimic = true;
+	}
+	if (mimic || stats.player) {
+		color = [0.3, 0.5, 0.1, 1];
+		visorColor = [0.1, 0.3, 1, 1];
 	}
 	this.spec = () => special;
 
@@ -49,11 +63,11 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 	let exit = -1;
 
 	// stats
-	let health = stats.health * (special ? 0.7 : 1);
+	let health = stats.health * [1, 0.7, 1.3][special] * (mimic ? 1.6 : 1);
 	const maxHealth = health;
 	const armor = stats.armor;
-	const moveSpeed = stats.moveSpeed * (special ? 3 : 1);
-	const moveSpeedY = stats.moveSpeedY * (special ? 3 : 1);
+	const moveSpeed = stats.moveSpeed * [1, 3, 0.9][special];
+	const moveSpeedY = stats.moveSpeedY * [1, 3, 0.9][special];
 	// gun stats
 	let ACCURACY;
 	let RECOIL;
@@ -188,8 +202,61 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 		}
 	}
 
-	this.act = function(delta, bullets, shakeFun, recharging, mx, my, up, right, left, shoot, air, blood, water, lava) {
+	function movement(right, left, delta2) {
+		if (right) { // D - RIGHT
+			speed = Math.min(1, speed + delta2 * 4);
+			sx += delta2 * 2;
+			moveFlip = false;
+			anim = (anim + delta2 * 15) % 4;
+		}
+		if (left) { // A - LEFT
+			speed = Math.min(1, speed + delta2 * 4);
+			sx -= delta2 * 2;
+			moveFlip = true;
+			anim = (anim + delta2 * 15) % 4;
+		}
+
+		sy += 2.5 * delta2; // gravity
+
+		sx = clamp(sx, -0.6, 0.6);
+		sy = clamp(sy, -1, 1);
+		const ownspeedx = sx * speed * moveSpeed + knockbackx;
+		const ownspeedy = sy * moveSpeedY + knockbacky;
+		const x2 = x + ownspeedx * delta2;
+		const y2 = y + ownspeedy * delta2;
+
+		// collision with world
+		const c = world.collisionBox(x, y, x2, y2, SIZE / 2, SIZE);
+		inAir = true;
+		if (c) {
+			x = c[0];
+			y = c[1];
+			if (sy > 0 && (
+				world.collision(x + SIZE / 2, y + SIZE, x + SIZE / 2, y + SIZE + 0.002) ||
+				world.collision(x - SIZE / 2, y + SIZE, x - SIZE / 2, y + SIZE + 0.002))) {
+					sy = 0; // reset gravity
+					inAir = false;
+				}
+		}
+		else {
+			x = x2;
+			y = y2;
+		}
+
+		return [ownspeedx, ownspeedy];
+	}
+
+	this.act = function(delta, bullets, shakeFun, recharging, mx, my, up, right, left, shoot, air, blood, water, lava, mimicStats) {
 		this.isActive(); // stop air sound
+
+		if (mimic && mimicStats) {
+			up = mimicStats[0];
+			right = mimicStats[2];
+			left = mimicStats[1];
+			shoot = mimicStats[3];
+			mx = x - mimicStats[4];
+			my = y + mimicStats[5];
+		}
 
 		if (health <= 0) {
 			sx *= Math.pow(0.5, delta);
@@ -268,6 +335,12 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 
 			if (recharging) {
 				if (cooldown < 0) cooldown = 0;
+				const _targetOffset = mousex && mousey ? [mousex - x, mousey - y] : null;
+				movement(false, false, delta2 * 0.4);
+				if (_targetOffset) {
+					mousex = x + _targetOffset[0];
+					mousey = y + _targetOffset[1];
+				}
 				return;
 			}
 
@@ -283,45 +356,8 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 				}
 			}
 			else this.stopAirSound();
-			if (right) { // D - RIGHT
-				speed = Math.min(1, speed + delta2 * 4);
-				sx += delta2 * 2;
-				moveFlip = false;
-				anim = (anim + delta2 * 15) % 4;
-			}
-			if (left) { // A - LEFT
-				speed = Math.min(1, speed + delta2 * 4);
-				sx -= delta2 * 2;
-				moveFlip = true;
-				anim = (anim + delta2 * 15) % 4;
-			}
 
-			sy += 2.5 * delta2; // gravity
-
-			sx = clamp(sx, -0.6, 0.6);
-			sy = clamp(sy, -1, 1);
-			const ownspeedx = sx * speed * moveSpeed + knockbackx;
-			const ownspeedy = sy * moveSpeedY + knockbacky;
-			const x2 = x + ownspeedx * delta2;
-			const y2 = y + ownspeedy * delta2;
-
-			// collision with world
-			const c = world.collisionBox(x, y, x2, y2, SIZE / 2, SIZE);
-			inAir = true;
-			if (c) {
-				x = c[0];
-				y = c[1];
-				if (sy > 0 && (
-					world.collision(x + SIZE / 2, y + SIZE, x + SIZE / 2, y + SIZE + 0.002) ||
-					world.collision(x - SIZE / 2, y + SIZE, x - SIZE / 2, y + SIZE + 0.002))) {
-						sy = 0; // reset gravity
-						inAir = false;
-					}
-			}
-			else {
-				x = x2;
-				y = y2;
-			}
+			const ownspeed = movement(right, left, delta2);
 
 			let v, rec;
 
@@ -341,8 +377,8 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 			// shooting 1
 			if (cooldown <= 0 && shoot) {
 				for (let b = 0; b < (gun.bullets || 1); b++) {
-					const ownspeedx2 = gun.ignoreOwnSpeed ? 0 : ownspeedx * OWNSPEEDMULT;
-					const ownspeedy2 = gun.ignoreOwnSpeed ? 0 : ownspeedy * OWNSPEEDMULT;
+					const ownspeedx2 = gun.ignoreOwnSpeed ? 0 : ownspeed[0] * OWNSPEEDMULT;
+					const ownspeedy2 = gun.ignoreOwnSpeed ? 0 : ownspeed[1] * OWNSPEEDMULT;
 					const v1 = rotateVector(v, rand(-accuracy, accuracy) * ACCURACY + rec);
 					const bs = rand(0.7, 1.3) * bulletSpeed;
 					const bullet = new Bullet(gl, shader, x, y,
@@ -405,7 +441,7 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 				Math.atan2(x - mousex - targetOffset[0], mousey + targetOffset[1] - y) + Math.PI * 0.5;
 			const x1 = toWorldX(x + SIZE * (this.getFlip() ? -0.2 : 0.2)) + Math.cos(rot) * SIZE;
 			const y1 = toWorldY(y - SIZE * 0.1) + Math.sin(rot) * SIZE;
-			const len = stats.player ? 0.4 : 0.7;
+			const len = stats.player ? 0.4 : (special === 2 ? 1.5 : 0.7);
 			beam.draw(x1, y1, x1 + Math.cos(rot) * len, y1 + Math.sin(rot) * len, 0.0037, [(0.05 + world.getLighting(x, y)) * (stats.player ? 2 : 4), 0, 0, 1]);
 		}
 		if (spawn >= 0) {

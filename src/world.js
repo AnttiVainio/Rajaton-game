@@ -118,7 +118,7 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 	const getWorld = (x, y) => world[y * SIZEX + x] || world[0];
 	const getWorldX = x => Math.round(x / TILESIZE / 2);
 	const getWorldY = y => Math.round(y / TILESIZE / 2);
-	let starty;
+	let starty, shaftx, shafty;
 	let arenax = SIZEX * TILESIZE * 10, arenay; // world positions
 	let arenaX1 = 0, arenaX2 = 0; // grid positions
 	let arenaTiles = [];
@@ -227,6 +227,8 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 				}
 				// create shaft
 				else if ((LEVEL === 1 && arena) || shaft) {
+					shaftx = X1 - W;
+					shafty = Y + H;
 					Y = randInt(1, SIZEY - 1 - H2);
 
 					for (let x = X1 - W; x < X1; x++) {
@@ -238,10 +240,12 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 					}
 					if (LEVEL === 1 || !randInt(0, 3)) fluid.addEmitter(randInt(X1 - W, X1 - 1), 1, fluidType());
 
-					if (X1 - W > 1) branch(1, SIZEY - 1, X1 - W - 1, -1, 0);
-					if (X1 < SIZEX - 1) branch(1, SIZEY - 1, X1, 1, 0);
+					if (LEVEL !== 1) {
+						if (X1 - W > 1) branch(1, SIZEY - 1, X1 - W - 1, -1, 0);
+						if (X1 < SIZEX - 1) branch(1, SIZEY - 1, X1, 1, 0);
+					}
 				}
-				// no shaft
+				// normal path
 				else {
 					const Y0 = Y;
 					let dir;
@@ -432,6 +436,9 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 
 			mouse1Box.draw(toWorldX(TILESIZE * 8) + BUTTONSIZE * 11, toWorldY((starty - 0.25) * TILESIZE * 2), BUTTONSIZE, BUTTONSIZE * 2, 0.7);
 			txt.draw("SHOOT", toWorldX(TILESIZE * 8) + BUTTONSIZE * 18, toWorldY((starty - 0.25) * TILESIZE * 2), BUTTONSIZE * 1.5, 1, [1, 1, 1, 0.7]);
+
+			txt.draw("collect liquids for ammo", toWorldX((shaftx - 4) * TILESIZE * 2), toWorldY((shafty - 2) * TILESIZE * 2), BUTTONSIZE, 1, [1, 1, 1, 0.7]);
+			txt.draw("collect blood also for health", toWorldX((shaftx - 4) * TILESIZE * 2), toWorldY((shafty - 1) * TILESIZE * 2), BUTTONSIZE, 1, [1, 1, 1, 0.7]);
 		}
 		else if (LEVEL === 2) {
 			mouse1Box.draw(toWorldX(TILESIZE * 8) + BUTTONSIZE * 10, toWorldY((starty - 0.9) * TILESIZE * 2), -BUTTONSIZE, BUTTONSIZE * 2, 0.7);
@@ -446,6 +453,10 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 			txt.draw("3",  toWorldX(TILESIZE * 8) + BUTTONSIZE * 6, toWorldY(starty * TILESIZE * 2), BUTTONSIZE, 1, [0, 0, 0, 1]);
 			txt.draw("...",toWorldX(TILESIZE * 8) + BUTTONSIZE * 9, toWorldY(starty * TILESIZE * 2), BUTTONSIZE, 1, [1, 1, 1, 0.7]);
 			txt.draw("select weapon", toWorldX(TILESIZE * 8) + BUTTONSIZE * 4.5, toWorldY((starty - 1) * TILESIZE * 2), BUTTONSIZE * 1.2, 1, [1, 1, 1, 0.7]);
+		}
+		else if (LEVEL === EXTRA_SETTING_UNLOCK) {
+			txt.draw("special setting unlocked", toWorldX(TILESIZE * 8) + BUTTONSIZE * 10, toWorldY((starty - 1) * TILESIZE * 2), BUTTONSIZE, 0.9, [1, 1, 1, 0.7]);
+			txt.draw("in the settings menu", toWorldX(TILESIZE * 8) + BUTTONSIZE * 10, toWorldY(starty * TILESIZE * 2), BUTTONSIZE, 0.9, [1, 1, 1, 0.7]);
 		}
 		else {
 			txt.draw("LEVEL-" + LEVEL, toWorldX(TILESIZE * 14), toWorldY((starty - 0.5) * TILESIZE * 2), TILESIZE * 2, 1.3, [1, 1, 1, 0.18]);

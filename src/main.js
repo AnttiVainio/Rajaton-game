@@ -30,8 +30,8 @@ $(function(){
 	let FPS2 = 60;
 
 	const canvas = $("#glCanvas");
-	const _gl = canvas[0].getContext("webgl", { alpha: false });
-	const gl = _gl ? _gl : canvas[0].getContext("experimental-webgl", { alpha: false });
+	const _gl = canvas[0].getContext("webgl", { alpha: false, antialias: false, depth: false });
+	const gl = _gl ? _gl : canvas[0].getContext("experimental-webgl", { alpha: false, antialias: false, depth: false });
 
 	if (!gl) {
 		alert("Unable to initialize WebGL. Your browser or machine may not support it.");
@@ -49,21 +49,6 @@ $(function(){
 	let results;
 	let pause;
 	let pauseSpeed = 1;
-
-	let quality = localStorage.getItem("anttivainio_rajaton_quality");
-	if (quality === undefined || quality === null) quality = true;
-	else quality = quality === "1";
-	if (quality !== false && quality !== true) quality = true;
-
-	let showFPS = localStorage.getItem("anttivainio_rajaton_FPS");
-	if (showFPS === undefined || showFPS === null) showFPS = false;
-	else showFPS = showFPS === "1";
-	if (showFPS !== false && showFPS !== true) showFPS = false;
-
-	let enableShake = localStorage.getItem("anttivainio_rajaton_shake");
-	if (enableShake === undefined || enableShake === null) enableShake = true;
-	else enableShake = enableShake === "1";
-	if (enableShake !== false && enableShake !== true) enableShake = true;
 
 	let bloomCount = 0;
 	const BLOOM_DIV = 2;
@@ -93,6 +78,12 @@ $(function(){
 		.addUniform("color", "vec4")
 	);
 	const posterisationShader = (new Shader(gl, _2DTextureVrt, _PosterisationFrg)
+		.addAttribute("a_position", 4, _draw_js_positionBuffer)
+		.addAttribute("a_texture", 2, _draw_js_textureBuffer)
+		.addUniform("texture1", "int", 0)
+		.addUniform("color", "vec4")
+	);
+	const blackAndWhiteShader = (new Shader(gl, _2DTextureVrt, _BlackAndWhiteFrg)
 		.addAttribute("a_position", 4, _draw_js_positionBuffer)
 		.addAttribute("a_texture", 2, _draw_js_textureBuffer)
 		.addUniform("texture1", "int", 0)
@@ -173,19 +164,19 @@ $(function(){
 		const startTime2 = Date.now();
 		const tmp1 = canvas.width();
 		const tmp2 = canvas.height();
-		if (canvasWidth !== tmp1 || canvasHeight !== tmp2 || canvasQuality !== quality) {
+		if (canvasWidth !== tmp1 || canvasHeight !== tmp2 || canvasQuality !== SETTINGS.quality) {
 			canvasWidth = tmp1;
 			canvasHeight = tmp2;
-			canvasQuality = quality;
+			canvasQuality = SETTINGS.quality;
 
 			if (document.fullscreenElement) {
-				canvas[0].width = quality ? Math.floor(canvas.width()) :
+				canvas[0].width = SETTINGS.quality ? Math.floor(canvas.width()) :
 					(canvas.width() / canvas.height() > ASPECT ? Math.floor(RESY * canvas.width() / canvas.height()) : RESX);
-				canvas[0].height = quality ? Math.floor(canvas.height()) :
+				canvas[0].height = SETTINGS.quality ? Math.floor(canvas.height()) :
 					(canvas.width() / canvas.height() < ASPECT ? Math.floor(RESX / canvas.width() * canvas.height()) : RESY);
 			}
 			else {
-				canvas[0].width = quality ? Math.floor(canvas.width()) : RESX;
+				canvas[0].width = SETTINGS.quality ? Math.floor(canvas.width()) : RESX;
 				canvas[0].height = canvas[0].width;
 			}
 
@@ -210,7 +201,7 @@ $(function(){
 			pauseMusic(player.getHealth() <= 0 && results);
 			world.act(delta);
 			fluid.act(delta);
-			player.act(delta, enableShake, m => toGameX(mouseToWorldX(m)), m => toGameY(mouseToWorldY(m)));
+			player.act(delta, m => toGameX(mouseToWorldX(m)), m => toGameY(mouseToWorldY(m)));
 			if (enemies) enemies.act(delta);
 			particles.act(delta);
 		}
@@ -238,9 +229,9 @@ $(function(){
 		if (enemies) enemies.draw();
 		player.draw();
 		particles.draw();
-		player.drawHud();
+		if (SETTINGS.showHud) player.drawHud();
 
-		if (showFPS) {
+		if (SETTINGS.showFPS) {
 			textBox.draw(Math.round(FPS).toString(), 0.9, -0.9 / ASPECT, 0.07, 1.0);
 			textBox.draw(Math.round(FPS2).toString(),0.65, -0.9 / ASPECT, 0.07, 1.0);
 		}
@@ -258,20 +249,14 @@ $(function(){
 				else {
 					playSong(0);
 					menu.setMain([
-						() => quality = !quality,
-						() => enableShake = !enableShake,
-						() => showFPS = !showFPS,
 						level => { LEVEL = level; newGame(); },
-					], quality, showFPS, enableShake);
+					]);
 				}
 			}
 			else if (pause) menu.setPause([
-				() => quality = !quality,
-				() => enableShake = !enableShake,
-				() => showFPS = !showFPS,
 				() => pause = false,
 				() => { results = false; player.quit(); },
-			], quality, showFPS, enableShake);
+			]);
 			else menu.noMenu();
 
 			menu.draw(ASPECT);
@@ -349,6 +334,7 @@ $(function(){
 			target.draw(X * aspectX, Y * aspectY * ASPECT, 0.04 * aspectX, 0.04 * aspectY * ASPECT, 0.8, true);
 		}
 
+		fullscreen.setShader([posterisationShader, blackAndWhiteShader][SETTINGS.shaderOption]);
 		fullscreen.draw(aspectX, aspectY);
 
 		keyboard.delete("wheelup");

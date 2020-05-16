@@ -203,7 +203,14 @@ function Text(gl, shader) {
 }
 
 function FramebufferBox(gl, framebuffer, framebufferShader) {
-	const box = new BoxTex(gl, framebufferShader);
+	let box = new BoxTex(gl, framebufferShader);
+
+	this.setShader = function(shader) {
+		if (framebufferShader !== shader) {
+			framebufferShader = shader;
+			box = new BoxTex(gl, framebufferShader);
+		}
+	}
 
 	this.draw = function(sx = 1, sy = -1, x = 0, y = 0) {
 		framebuffer.drawToCanvas();

@@ -1,6 +1,6 @@
 "use strict";
 
-const VERSION = "v0.9.0-2020-05-09";
+const VERSION = "v0.9.1-2020-05-16";
 
 const IMAGE_LOCATION = "/game_images/";
 const SOUND_LOCATION = "/game_sounds/";
@@ -14,6 +14,8 @@ const LOG_GUNS = false;
 const RESX = 320;
 const RESY = 240;
 const ASPECT = RESX / RESY;
+
+const EXTRA_SETTING_UNLOCK = 50;
 
 const DEFAULT_SOUND_VOL = 100;
 const DEFAULT_MUSIC_VOL = 70;
@@ -60,7 +62,7 @@ const STATS = {
 		chase: 6,
 		spawnRate: i <= 2 ? 0 : 0.15 + 0.0028 * i,
 		arenaRate: i <= 2 ? 0.3 : 0.4 + 0.002 * i,
-		initial: i <= 2 ? 5 + i : 2 + i * 0.2,
+		initial: i <= 2 ? 4 + i : 2 + i * 0.2,
 		air: Math.max(0.27, 1 - i * 0.03),
 		blood: i <= 4 ? 0 : (1 - Math.pow(0.8, Math.sqrt(i - 4))) * 0.25,
 		water: i <= 11 ? 0 : (1 - Math.pow(0.86, Math.sqrt(i - 11))) * 0.22,

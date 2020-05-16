@@ -64,7 +64,7 @@ const _PosterisationFrg = `
 	}
 `;
 
-/*const _PosterisationFrg = `
+const _BlackAndWhiteFrg = `
 	precision mediump float;
 	varying vec2 texCoord;
 	uniform sampler2D texture1;
@@ -78,16 +78,16 @@ const _PosterisationFrg = `
 			vec3 avg3 = (
 				texture2D(texture1, texCoord + vec2(-${5 / RESX}, 0.0)).rgb +
 				texture2D(texture1, texCoord + vec2( ${5 / RESX}, 0.0)).rgb +
-				texture2D(texture1, texCoord + vec2(0.0, -${5 / RESX})).rgb +
-				texture2D(texture1, texCoord + vec2(0.0,  ${5 / RESX})).rgb) *
+				texture2D(texture1, texCoord + vec2(0.0, -${5 / RESY})).rgb +
+				texture2D(texture1, texCoord + vec2(0.0,  ${5 / RESY})).rgb) *
 				vec3(0.299, 0.587, 0.114) * 0.25;
 			float avg = avg3.r + avg3.g + avg3.b;
 			gl_FragColor = vec4(vec3(br < avg - 0.05 ? 0.0 : (br > avg + 0.05 ? 1.0 :
-				(mod(floor(texCoord.t * ${RESX}.0) + floor(texCoord.s * ${RESX}.0), 2.0))
+				(mod(floor(texCoord.t * ${RESY}.0) + floor(texCoord.s * ${RESX}.0), 2.0))
 				)), 1.0) * color;
 		}
 	}
-`;*/
+`;
 
 const _2DAlphaTextureFrg = `
 	precision mediump float;
