@@ -37,14 +37,16 @@ function additiveColor(c) {
 	return [c[0] * c[3], c[1] * c[3], c[2] * c[3], 1];
 }
 
+const _draw_js_POS_MULT = 2 / RESX;
+
 function pixelatePositions(positions) {
 	const x = positions[0];
 	const y = positions[1];
-	positions[0] = Math.round(positions[0] * RESX / 2) / RESX * 2;
-	positions[1] = Math.round(positions[1] * RESX / 2) / RESX * 2;
+	positions[0] = Math.round(positions[0] * HALF_RES) * _draw_js_POS_MULT;
+	positions[1] = Math.round(positions[1] * HALF_RES) * _draw_js_POS_MULT;
 	for (let i = 4; i < positions.length; i += 4) {
-		positions[i  ] = Math.round((positions[i  ] - x) * RESX / 2) / RESX * 2 + positions[0];
-		positions[i+1] = Math.round((positions[i+1] - y) * RESX / 2) / RESX * 2 + positions[1];
+		positions[i  ] = Math.round((positions[i  ] - x) * HALF_RES) * _draw_js_POS_MULT + positions[0];
+		positions[i+1] = Math.round((positions[i+1] - y) * HALF_RES) * _draw_js_POS_MULT + positions[1];
 	}
 	return positions;
 }
@@ -87,7 +89,7 @@ function Beam(gl, shader) {
 }
 
 function getDrawCoordinates(x, y, sizex, sizey, rot = undefined) {
-	if (rot === undefined) return [
+	if (!rot) return [
 		x - sizex, y - sizey, 1, 1,
 		x + sizex, y - sizey, 1, 1,
 		x - sizex, y + sizey, 1, 1,

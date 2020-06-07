@@ -8,11 +8,14 @@ const _fluid_js_color = {
 	[FLUID_LAVA]: [1, 0.25, 0.1, 1],
 };
 
+const _fluid_js_POS_MULT = 2 / RESX;
+const _fluid_js_POS_MULT2 = 1 / TILESIZE / RESX;
+
 function _fluid_js_gridToDraw(x, y) {
-	return [Math.round(x) / RESX * 2, Math.round(y) / RESX * 2];
+	return [Math.round(x) * _fluid_js_POS_MULT, Math.round(y) * _fluid_js_POS_MULT];
 }
 function _fluid_js_gridToWorld(x, y) {
-	return [Math.round(x / TILESIZE / RESX), Math.round(y / TILESIZE / RESX)];
+	return [Math.round(x * _fluid_js_POS_MULT2), Math.round(y * _fluid_js_POS_MULT2)];
 }
 
 function Fluid(x, y, world, grid, width, type) {
@@ -49,7 +52,7 @@ function Fluid(x, y, world, grid, width, type) {
 	}
 
 	this.act = function() {
-		if (!randInt(0, 500)) {
+		if (life <= 0 || !randInt(0, 500)) {
 			setGrid(x, y, false);
 			return true;
 		}
@@ -125,22 +128,22 @@ function FluidSystem(gl, shader) {
 	function drain(fluid, delta, x, y, l) {
 		drainAmount += delta * 150;
 		let retval = 0;
-		let i = 0;
-		while (drainAmount > 1) {
-			drainAmount--;
-			while (i < fluid.length) {
-				i++;
-				if (fluid[i - 1].drain(x, y, l)) {
+		if (drainAmount > 8) {
+			let i = 0;
+			while (drainAmount > 1 && i < fluid.length) {
+				if (fluid[i].drain(x, y, l)) {
 					retval++;
-					break;
+					drainAmount--;
 				}
+				i++;
 			}
+			if (drainAmount > 1) drainAmount = -8; // optimization to wait longer
 		}
 		return retval;
 	}
 
-	this.drainWater = (delta, pos, l) => drain(water, delta, pos[0] * RESX * 0.5, pos[1] * RESX * 0.5, l * RESX * 0.5);
-	this.drainLava  = (delta, pos, l) => drain(lava,  delta, pos[0] * RESX * 0.5, pos[1] * RESX * 0.5, l * RESX * 0.5);
+	this.drainWater = (delta, pos, l) => drain(water, delta, pos[0] * HALF_RES, pos[1] * HALF_RES, l * HALF_RES);
+	this.drainLava  = (delta, pos, l) => drain(lava,  delta, pos[0] * HALF_RES, pos[1] * HALF_RES, l * HALF_RES);
 
 	this.act = function(delta) {
 		tick += delta * TICK;

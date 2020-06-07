@@ -13,7 +13,7 @@ function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 	let r2 = 0;
 	const r3 = new RandomTimer(0.04);
 
-	y /= ASPECT;
+	y *= INVERSE_ASPECT;
 
 	let _hover = false;
 	let txt = _txt;
@@ -27,8 +27,8 @@ function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 
 	const rot = rand(-1, 1) * 0.15;
 
-	function sx(aspect) {
-		return size * (_small ? 1.7 : 12) / aspect;
+	function sx() {
+		return size * (_small ? 1.7 : 12) * INVERSE_ASPECT;
 	}
 	function sy() {
 		return size * 1.2;
@@ -66,19 +66,19 @@ function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 		return retval;
 	}
 
-	this.act = function(delta, aspect, mx, my, down) {
+	this.act = function(delta, mx, my, down) {
 		if (r.act(delta)[0]) r2 = (2 - life) * 2;
 
 		if (spec) specMove += delta;
 
 		entry = Math.max(0, entry - delta * 2.5);
 
-		_hover = !spec && life > 1 && mx > x - sx(aspect) && mx < x + sx(aspect) && my > y - sy() && my < y + sy();
+		_hover = !spec && life > 1 && mx > x - sx() && mx < x + sx() && my > y - sy() && my < y + sy();
 		size = _size * (_hover ? 1.1 : 1) * mix(1, 0, 1, 10, Math.min(1, life)) * mix(2, 0, 4, 1, entry < 1 ? 0 : entry);
 
 		if (_volume && _hover && down) {
 			const vol0 = _volume === 1 ? SOUND_VOL : MUSIC_VOL;
-			const vol = clamp(Math.round(mix((x - sx(aspect)) * 0.85, (x + sx(aspect)) * 0.85, 0, 100, mx)), 0, 100);
+			const vol = clamp(Math.round(mix((x - sx()) * 0.85, (x + sx()) * 0.85, 0, 100, mx)), 0, 100);
 			if (vol0 !== vol) {
 				if (_volume === 1) {
 					SOUND_VOL = vol;
@@ -96,7 +96,7 @@ function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 		return life <= 0;
 	}
 
-	this.draw = function(aspect, textBox, box, target, beam, down) {
+	this.draw = function(textBox, box, target, beam, down) {
 		down = down && active;
 		const downMult = down && _hover && !_volume ? 0.8 : 1;
 		const shake = (life <= 1 ? r2 : (_hover ? (down ? (_volume ? 0 : 0.03) : 0.012) : 0)) + (entry < 1 ? entry : 0) * 0.08;
@@ -105,7 +105,7 @@ function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 
 		const entryFade = Math.min(1, mix(2, 1, 0, 1, entry));
 		const entryRot = rot * (1 - entryFade) * 6;
-		const sizex = downMult * sx(aspect);
+		const sizex = downMult * sx();
 		const _rot = entryRot + (_hover && !(_volume && down) ? rot : mix(1, 0, 0, rot * 4, Math.min(1, life)));
 
 		if (active) box.drawRot(X, Y, sizex, downMult * sy(),
@@ -113,7 +113,7 @@ function Button(active, _txt, x, y, _size, width, color = [1, 1, 1]) {
 
 		const onlyVol = _volume && down && _hover;
 		textBox.drawRot((onlyVol ? "" : txt) + (_volume ? (_volume === 1 ? SOUND_VOL : MUSIC_VOL) : ""),
-			X, Y, downMult * size, width / aspect * (onlyVol ? 1.5 : 1),
+			X, Y, downMult * size, width * INVERSE_ASPECT * (onlyVol ? 1.5 : 1),
 			_rot, [color[0], color[1], color[2], (life <= 1 ? 0.4 * life : 1) * entryFade]);
 
 		if (_volume) {
@@ -311,11 +311,11 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 		}
 	}
 
-	this.act = function(delta, aspect) {
-		actObjects(buttons, delta, aspect,
+	this.act = function(delta) {
+		actObjects(buttons, delta,
 			mouse[0] === null ? -1000 : mouseToWorldX(mouse[0][0]),
 			mouse[0] === null ? -1000 : mouseToWorldY(mouse[0][1]), down);
-		actObjects(credits, delta, aspect, -1000, -1000);
+		actObjects(credits, delta, -1000, -1000);
 
 		if (!mouse[1]) grace -= delta;
 		if (grace >= 0) {
@@ -373,8 +373,8 @@ function Menu(gl, shader, colorShader, textShader, mouse) {
 		}
 	}
 
-	this.draw = function(aspect) {
-		drawObjects(buttons, aspect, textBox, box, targetBox, beam, down);
-		drawObjects(credits, aspect, textBox, box, targetBox, beam, down);
+	this.draw = function() {
+		drawObjects(buttons, textBox, box, targetBox, beam, down);
+		drawObjects(credits, textBox, box, targetBox, beam, down);
 	}
 }

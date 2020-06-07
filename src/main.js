@@ -1,6 +1,6 @@
 "use strict";
 
-let aspect, camerax, cameray;
+let aspect, inverse_aspect, camerax, cameray;
 
 function updateCamera(x, y) {
 	camerax = x;
@@ -19,10 +19,10 @@ function toGameY(v) {
 	return v + cameray;
 }
 function mouseToWorldX(m) {
-	return aspect > ASPECT ? m * aspect / ASPECT : m;
+	return aspect > ASPECT ? m * aspect * INVERSE_ASPECT : m;
 }
 function mouseToWorldY(m) {
-	return aspect < ASPECT ? m / aspect : m / ASPECT;
+	return aspect < ASPECT ? m * inverse_aspect : m * INVERSE_ASPECT;
 }
 
 $(function(){
@@ -181,9 +181,10 @@ $(function(){
 			}
 
 			aspect = canvas[0].width / canvas[0].height;
+			inverse_aspect = canvas[0].height / canvas[0].width;
 		}
 
-		let delta = (timestamp - startTime) / 1000;
+		let delta = (timestamp - startTime) * 0.001;
 		if (!delta || delta <= 0) delta = 0.001;
 		else if (delta > 0.2) delta = 0.2;
 		else FPS = FPS * 0.95 + 0.05 / delta;
@@ -216,14 +217,14 @@ $(function(){
 			/* Start drawing */
 
 		mainbuffer.use();
-		gl.viewport(0, -(RESX - RESY) / 2, RESX, RESX);
+		gl.viewport(0, (RESY - RESX) / 2, RESX, RESX);
 
 		noise += delta;
 		if (noise > 0.05) {
 			noise -= 0.05;
 			noiseRand = Math.random();
 		}
-		noiseBox.draw(0, 0, 1, 1 / ASPECT, noiseRand);
+		noiseBox.draw(0, 0, 1, INVERSE_ASPECT, noiseRand);
 
 		world.draw();
 		if (enemies) enemies.draw();
@@ -232,13 +233,13 @@ $(function(){
 		if (SETTINGS.showHud) player.drawHud();
 
 		if (SETTINGS.showFPS) {
-			textBox.draw(Math.round(FPS).toString(), 0.9, -0.9 / ASPECT, 0.07, 1.0);
-			textBox.draw(Math.round(FPS2).toString(),0.65, -0.9 / ASPECT, 0.07, 1.0);
+			textBox.draw(Math.round(FPS).toString(), 0.9, -0.9 * INVERSE_ASPECT, 0.07, 1.0);
+			textBox.draw(Math.round(FPS2).toString(),0.65, -0.9 * INVERSE_ASPECT, 0.07, 1.0);
 		}
 
 		// Menu
 		if (songsStatus() === 2) {
-			menu.act(origDelta, ASPECT);
+			menu.act(origDelta);
 
 			if (player.getHealth() <= 0) {
 				if (results) {
@@ -259,7 +260,7 @@ $(function(){
 			]);
 			else menu.noMenu();
 
-			menu.draw(ASPECT);
+			menu.draw();
 		}
 		else {
 			textBox.draw(songsStatus() ? "Loading music" : "Click to start", 0, -0.45, 0.14, 0.8);
@@ -276,9 +277,9 @@ $(function(){
 			const X = mouseToWorldX(mouse[0][0]) + offset[0];
 			const Y = mouseToWorldY(mouse[0][1]) + offset[1];
 			if (X !== cursorx || Y !== cursory) {
-				const l = length(X, Y, cursorx, cursory);
-				cursorx = X + (cursorx - X) / l * 2 * size;
-				cursory = Y + (cursory - Y) / l * 2 * size;
+				const l = 2 * size / length(X, Y, cursorx, cursory);
+				cursorx = X + (cursorx - X) * l;
+				cursory = Y + (cursory - Y) * l;
 			}
 			if (inMenu) {
 				const rot = Math.atan2(cursorx - X, Y - cursory);
@@ -292,7 +293,7 @@ $(function(){
 		bloomCount += delta * 60;
 		if (bloomCount > 0) {
 			bloombuffer1.use();
-			gl.viewport(0, -(RESX - RESY) / 2 / BLOOM_DIV, RESX / BLOOM_DIV, RESX / BLOOM_DIV);
+			gl.viewport(0, (RESY - RESX) / 2 / BLOOM_DIV, RESX / BLOOM_DIV, RESX / BLOOM_DIV);
 			gl.clear(gl.COLOR_BUFFER_BIT);
 
 			fluid.draw();
@@ -321,8 +322,8 @@ $(function(){
 		bloombuffer2.useTexture(0);
 		bloomBox2.draw(0, 0, 1, 1, mix(60, 0, 0.55, 0.7, Math.min(60, player.getHealth())));
 
-		const aspectX = aspect > ASPECT ? ASPECT / aspect : 1;
-		const aspectY = aspect < ASPECT ? -aspect / ASPECT : -1;
+		const aspectX = aspect > ASPECT ? ASPECT * inverse_aspect : 1;
+		const aspectY = aspect < ASPECT ? -aspect * INVERSE_ASPECT : -1;
 		framebuffer.drawToCanvas();
 		gl.clear(gl.COLOR_BUFFER_BIT);
 

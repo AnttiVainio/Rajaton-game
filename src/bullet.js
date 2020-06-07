@@ -34,7 +34,7 @@ function Bullet(gl, shader, x, y, dx, dy, gun, air, blood, water, lava, enemyId1
 
 	this.getHit = function(x, y, len, enemyId2 = -1) {
 		if (enemyId1 === enemyId2) return [0, 0, 0];
-		if (penetration > 0 && distanceToFiniteLine(x, y, x0, y0, x1, y1) < (len + SIZE)) {
+		if (penetration > 0 && distanceToFiniteLineSquared(x, y, x0, y0, x1, y1) < (len + SIZE) * (len + SIZE)) {
 			penetration--;
 			return [DAMAGE, gun.damage * water, gun.damage * lava];
 		}

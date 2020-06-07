@@ -4,7 +4,7 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 	const COLOR = new Bullet(null, null, null, null, null, null, null, air, blood, water, lava);
 	const human = new Human(gl, shader, colorShader, world.getArena(), COLOR, [...RGBFromHue(rand(0, 360)), 1], STATS.enemy(stats), gun, world, x, y, id);
 
-	const PROXIMITY = human.spec() === 2 ? 10 : STATS.enemy(stats).proximity * (human.spec() ? 3 : 1);
+	const PROXIMITY = Math.pow(human.spec() === 2 ? 10 : STATS.enemy(stats).proximity * (human.spec() ? 3 : 1), 2);
 	const REACTION = STATS.enemy(stats).reaction * (human.spec() ? 0.5 : 1);
 	const CHASE = STATS.enemy(stats).chase;
 
@@ -23,9 +23,11 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 
 	this.stopSounds = () => human.stopSounds();
 
+	let skipped = true;
 	const ACT_DIST = 5;
 	function skip(pos) {
-		return toWorldX(pos[0]) < -ACT_DIST || toWorldX(pos[0]) > ACT_DIST || toWorldY(pos[1]) < -ACT_DIST || toWorldY(pos[1]) > ACT_DIST;
+		skipped = toWorldX(pos[0]) < -ACT_DIST || toWorldX(pos[0]) > ACT_DIST || toWorldY(pos[1]) < -ACT_DIST || toWorldY(pos[1]) > ACT_DIST;
+		return skipped;
 	}
 
 	this.act = function(delta, bullets, ppos, playerBullets, mimicStats) {
@@ -41,16 +43,18 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 		chase -= delta2;
 		if (chase < 0) wander = true;
 
-		const l = length(pos[0], pos[1], ppos[0], ppos[1]);
+		const l = lengthSquared(pos[0], pos[1], ppos[0], ppos[1]);
 		if (l < PROXIMITY) think = -0.001;
 
 		if (think < 0) {
 			think += REACTION;
 
 			let c = false;
+			const chase_proximity = 1.5 + Math.max(0, chase);
 			if (l < PROXIMITY || ((chase > 0 || (!human.getFlip() && ppos[0] > pos[0]) || (human.getFlip() && ppos[0] < pos[0])) &&
-				l < 1.5 + Math.max(0, chase))) {
+				l < chase_proximity * chase_proximity)) {
 
+				// check line of sight
 				c = world.collision(pos[0], pos[1], ppos[0], ppos[1]);
 				if (!c || human.spec() === 2) {
 					wander = false;
@@ -105,11 +109,11 @@ function Enemy(id, gl, shader, colorShader, stats, gun, world, x, y, air, blood,
 	}
 
 	this.draw = function() {
-		if (!skip(human.getPos())) human.draw();
+		if (!skipped) human.draw();
 	}
 
 	this.drawBloom = function() {
-		if (!skip(human.getPos())) human.drawBloom();
+		if (!skipped) human.drawBloom();
 	}
 }
 

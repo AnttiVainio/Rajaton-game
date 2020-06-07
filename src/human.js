@@ -226,14 +226,14 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 		const y2 = y + ownspeedy * delta2;
 
 		// collision with world
-		const c = world.collisionBox(x, y, x2, y2, SIZE / 2, SIZE);
+		const c = world.collisionBox(x, y, x2, y2, SIZE * 0.5, SIZE);
 		inAir = true;
 		if (c) {
 			x = c[0];
 			y = c[1];
 			if (sy > 0 && (
-				world.collision(x + SIZE / 2, y + SIZE, x + SIZE / 2, y + SIZE + 0.002) ||
-				world.collision(x - SIZE / 2, y + SIZE, x - SIZE / 2, y + SIZE + 0.002))) {
+				world.collision(x + SIZE * 0.5, y + SIZE, x + SIZE * 0.5, y + SIZE + 0.002) ||
+				world.collision(x - SIZE * 0.5, y + SIZE, x - SIZE * 0.5, y + SIZE + 0.002))) {
 					sy = 0; // reset gravity
 					inAir = false;
 				}
@@ -291,7 +291,7 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 		// exit
 		if (stats.player) {
 			const exitPos = world.getExit();
-			if (length(x, y, exitPos[0], exitPos[1]) < PORTALSIZE) {
+			if (lengthSquared(x, y, exitPos[0], exitPos[1]) < PORTALSIZE * PORTALSIZE) {
 				exit = 0;
 				sx = 0;
 				sy = 0;
@@ -364,8 +364,8 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 			if (mx !== undefined && my != undefined) {
 				const x1 = mx - x;
 				const y1 = my - y;
-				const l = length(x1, y1);
-				v = [x1 / l, y1 / l];
+				const l = 1 / length(x1, y1);
+				v = [x1 * l, y1 * l];
 				const rot = Math.atan2(v[0], v[1]);
 				rec = (rot < 0 ? mix(0, Math.PI, recoil, 0, Math.abs(rot * 2 + Math.PI)) : mix(0, Math.PI, -recoil, 0, Math.abs(rot * 2 - Math.PI))) * RECOIL;
 				const target = rotateVector([x1, y1], rec);
@@ -413,11 +413,11 @@ function Human(gl, shader, colorShader, spawnEffect, color, visorColor, stats, g
 			const c = 0.35 + world.getLighting(x, y) * 7;
 			const sprite = inAir ? 1 : Math.floor(anim);
 			box.setTexture("player" + (sprite === 3 ? 1 : sprite));
-			box.draw(  toWorldX(x), toWorldY(y), SIZE * 0.9 * (flip ? -1 : 1), SIZE * 1.1,
+			box.draw(toWorldX(x), toWorldY(y), SIZE * 0.9 * (flip ? -1 : 1), SIZE * 1.1,
 				[
-					c * (mix(0, 5, color[0], 0, Math.max(burn, frost)) + burn / 5),
+					c * (mix(0, 5, color[0], 0, Math.max(burn, frost)) + burn * 0.2),
 					c *  mix(0, 5, color[1], 0, Math.max(burn, frost)),
-					c * (mix(0, 5, color[2], 0, Math.max(burn, frost)) + frost / 5),
+					c * (mix(0, 5, color[2], 0, Math.max(burn, frost)) + frost * 0.2),
 					color[3],
 				]);
 			visor.draw(toWorldX(x), toWorldY(y), SIZE * 0.9 * (flip ? -1 : 1), SIZE * 1.1, visorColor);

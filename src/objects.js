@@ -119,8 +119,9 @@ function Blood(x, y, sx, sy, collectible) {
 			if (l < DRAINDIST && l > 0) {
 				stop = false;
 				fall = 0;
-				const newsx = (pos[0] - x) / l * (DRAINDIST - l) * 15;
-				const newsy = (pos[1] - y) / l * (DRAINDIST - l) * 15;
+				const mult = (DRAINDIST - l) * 15 / l;
+				const newsx = (pos[0] - x) * mult;
+				const newsy = (pos[1] - y) * mult;
 				if (newsx * newsx + newsy * newsy > sx * sx + sy * sy) {
 					sx = newsx;
 					sy = newsy;

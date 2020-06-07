@@ -30,19 +30,19 @@ function Tile(x, y) {
 		if (this.solid) {
 			if (x1 <= r && x2 >= r) {
 				const y0 = mix(x1, x2, y1, y2, r);
-				if (y0 >= t && y0 <= b) best = _world_js_best_collision([r - 0.0001, slide ? y2 : y0], best, length(x1, y1, r, y0));
+				if (y0 >= t && y0 <= b) best = [[r - 0.0001, slide ? y2 : y0], lengthSquared(x1, y1, r, y0)];
 			}
 			if (x1 >= l && x2 <= l) {
 				const y0 = mix(x1, x2, y1, y2, l);
-				if (y0 >= t && y0 <= b) best = _world_js_best_collision([l + 0.0001, slide ? y2 : y0], best, length(x1, y1, l, y0));
+				if (y0 >= t && y0 <= b) best = _world_js_best_collision([l + 0.0001, slide ? y2 : y0], best, lengthSquared(x1, y1, l, y0));
 			}
 			if (y1 <= t && y2 >= t) {
 				const x0 = mix(y1, y2, x1, x2, t);
-				if (x0 >= r && x0 <= l) best = _world_js_best_collision([slide ? x2 : x0, t - 0.0001], best, length(x1, y1, x0, t));
+				if (x0 >= r && x0 <= l) best = _world_js_best_collision([slide ? x2 : x0, t - 0.0001], best, lengthSquared(x1, y1, x0, t));
 			}
 			if (y1 >= b && y2 <= b) {
 				const x0 = mix(y1, y2, x1, x2, b);
-				if (x0 >= r && x0 <= l) best = _world_js_best_collision([slide ? x2 : x0, b + 0.0001], best, length(x1, y1, x0, b));
+				if (x0 >= r && x0 <= l) best = _world_js_best_collision([slide ? x2 : x0, b + 0.0001], best, lengthSquared(x1, y1, x0, b));
 			}
 		}
 		return best;
@@ -53,15 +53,19 @@ function Lamp(x, y, box, glow) {
 	const SIZE = 0.12;
 	const SIZE2 = 0.2;
 
-	this.lightX = () => x * TILESIZE * 2;
-	this.lightY = () => y * TILESIZE * 2 + TILESIZE - SIZE * 1.65;
+	const drawx = x * TILESIZE * 2;
+	const drawy = y * TILESIZE * 2 + TILESIZE - SIZE * 1.65;
+	const drawy2 = y * TILESIZE * 2 + TILESIZE - SIZE;
+
+	this.lightX = () => drawx;
+	this.lightY = () => drawy;
 
 	this.draw = function(size, bloom) {
 		box.draw(
-			toWorldX(this.lightX()), toWorldY(y * TILESIZE * 2 + TILESIZE - SIZE),
+			toWorldX(drawx), toWorldY(drawy2),
 			SIZE * 0.5, SIZE, bloom ? 0.3 : 0.6);
 		if (bloom) glow.draw(
-			toWorldX(this.lightX()), toWorldY(this.lightY()),
+			toWorldX(drawx), toWorldY(drawy),
 			SIZE2 * size, SIZE2 * size, 0.15);
 	}
 }
@@ -116,8 +120,9 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 		for (let x = 0; x < SIZEX; x++) world.push(new Tile(x, y));
 	}
 	const getWorld = (x, y) => world[y * SIZEX + x] || world[0];
-	const getWorldX = x => Math.round(x / TILESIZE / 2);
-	const getWorldY = y => Math.round(y / TILESIZE / 2);
+	const worldMult = 1 / TILESIZE / 2;
+	const getWorldX = x => Math.round(x * worldMult);
+	const getWorldY = y => Math.round(y * worldMult);
 	let starty, shaftx, shafty;
 	let arenax = SIZEX * TILESIZE * 10, arenay; // world positions
 	let arenaX1 = 0, arenaX2 = 0; // grid positions
@@ -175,8 +180,8 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 					const arenaHeight = randInt(6, 7);
 					Y = clamp(randInt(Y + H - arenaHeight, Y), 1, SIZEY - 1 - arenaHeight);
 
-					arenax = (X1 + (W - 1) / 2) * TILESIZE * 2;
-					arenay = (Y + (arenaHeight - 1) / 2) * TILESIZE * 2 + TILESIZE;
+					arenax = (X1 + (W - 1) * 0.5) * TILESIZE * 2;
+					arenay = (Y + (arenaHeight - 1) * 0.5) * TILESIZE * 2 + TILESIZE;
 					arenaX1 = X1 - 1;
 					arenaX2 = X1 + W;
 					for (let x = X1 - 1; x <= X1 + W; x++) {
@@ -383,11 +388,13 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 		}
 	}
 
+	const drawMult = 0.5 / TILESIZE;
+
 	this.draw = function() {
-		const y2 = Math.min(SIZEY, Math.ceil((cameray + 1.15 / ASPECT) / TILESIZE * 0.5));
-		const x2 = Math.min(SIZEX, Math.ceil((camerax + 1.15) / TILESIZE * 0.5));
-		for (let y = Math.max(0, Math.floor((cameray - 0.9 / ASPECT) / TILESIZE * 0.5)); y < y2; y++) {
-			for (let x = Math.max(0, Math.floor((camerax - 0.9) / TILESIZE * 0.5)); x < x2; x++) {
+		const y2 = Math.min(SIZEY, Math.ceil((cameray + 1.15 * INVERSE_ASPECT) * drawMult));
+		const x2 = Math.min(SIZEX, Math.ceil((camerax + 1.15) * drawMult));
+		for (let y = Math.max(0, Math.floor((cameray - 0.9 * INVERSE_ASPECT) * drawMult)); y < y2; y++) {
+			for (let x = Math.max(0, Math.floor((camerax - 0.9) * drawMult)); x < x2; x++) {
 				const tile = getWorld(x, y);
 				const color = (tile.solid ? 0.9 : 0.3) + tile.lighting * 2;
 				const X = toWorldX(x * TILESIZE * 2);
@@ -464,10 +471,10 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 	}
 
 	this.drawBloom = function() {
-		const y2 = Math.min(SIZEY, Math.ceil((cameray + 1.15 / ASPECT) / TILESIZE * 0.5));
-		const x2 = Math.min(SIZEX, Math.ceil((camerax + 1.15) / TILESIZE * 0.5));
-		for (let y = Math.max(0, Math.floor((cameray - 0.9 / ASPECT) / TILESIZE * 0.5)); y < y2; y++) {
-			for (let x = Math.max(0, Math.floor((camerax - 0.9) / TILESIZE * 0.5)); x < x2; x++) {
+		const y2 = Math.min(SIZEY, Math.ceil((cameray + 1.15 * INVERSE_ASPECT) * drawMult));
+		const x2 = Math.min(SIZEX, Math.ceil((camerax + 1.15) * drawMult));
+		for (let y = Math.max(0, Math.floor((cameray - 0.9 * INVERSE_ASPECT) * drawMult)); y < y2; y++) {
+			for (let x = Math.max(0, Math.floor((camerax - 0.9) * drawMult)); x < x2; x++) {
 				const tile = getWorld(x, y);
 				if (tile.lighting) colorBox.draw(
 					toWorldX(x * TILESIZE * 2), toWorldY(y * TILESIZE * 2),
@@ -535,7 +542,7 @@ function World(gl, shader, alphaShader, colorShader, textShader, LEVEL, fluid) {
 				const y1_2 = y1 + sizey * y;
 				const y2_2 = y2 + sizey * y;
 				const c = this.collision(x1_2, y1_2, x2_2, y2_2, slide);
-				if (c) best = _world_js_best_collision([c[0] - sizex * x, c[1] - sizey * y], best, length(x1_2, y1_2, c[0], c[1]));
+				if (c) best = _world_js_best_collision([c[0] - sizex * x, c[1] - sizey * y], best, lengthSquared(x1_2, y1_2, c[0], c[1]));
 			}
 		}
 		if (again && best[0]) {

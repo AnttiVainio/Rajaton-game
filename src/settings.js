@@ -1,6 +1,6 @@
 "use strict";
 
-const VERSION = "v0.9.1-2020-05-16";
+const VERSION = "v1.0.0-2020-06-07";
 
 const IMAGE_LOCATION = "/game_images/";
 const SOUND_LOCATION = "/game_sounds/";
@@ -13,7 +13,11 @@ const LOG_GUNS = false;
 
 const RESX = 320;
 const RESY = 240;
+
 const ASPECT = RESX / RESY;
+const INVERSE_ASPECT = RESY / RESX;
+const HALF_RES = RESX / 2;
+const INVERSE_RES = 1 / RESX;
 
 const EXTRA_SETTING_UNLOCK = 50;
 

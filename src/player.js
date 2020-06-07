@@ -367,8 +367,8 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 				if (p[0] > exitPos[0] * (LEVEL - 1) * 0.1) {
 					const exitVec = [exitPos[0] - p[0], exitPos[1] - p[1]];
 					const exitLen = length(exitVec[0], exitVec[1]);
-					const len = Math.min(0.7, exitLen - 0.2);
-					arrowBox.drawRot(toWorldX(p[0] + exitVec[0] / exitLen * len), toWorldY(p[1] + exitVec[1] / exitLen * len), ARROW_SIZE, ARROW_SIZE, Math.atan2(-exitVec[0], exitVec[1]), [0, 1, 1, 0.35]);
+					const len = Math.min(0.7, exitLen - 0.2) / exitLen;
+					arrowBox.drawRot(toWorldX(p[0] + exitVec[0] * len), toWorldY(p[1] + exitVec[1] * len), ARROW_SIZE, ARROW_SIZE, Math.atan2(-exitVec[0], exitVec[1]), [0, 1, 1, 0.35]);
 				}
 			}
 			// Red borders
@@ -396,16 +396,16 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 					const x = -1 + JAR_SIZE * (0.2 + pos * 0.25);
 					pos++;
 					// fade
-					if (i < 2 && v[i][1] < 50) jarfadeBox.draw(x, 1 / ASPECT - JAR_SIZE * 0.2, JAR_SIZE * 0.22, JAR_SIZE * 0.22,
+					if (i < 2 && v[i][1] < 50) jarfadeBox.draw(x, 1 * INVERSE_ASPECT - JAR_SIZE * 0.2, JAR_SIZE * 0.22, JAR_SIZE * 0.22,
 						[1, 0, 0, mix(50, 0, 0, 1, v[i][1])]);
-					if ((Number(i) === 0 || Number(i) === 2) && healFade > 0) jarfadeBox.draw(x, 1 / ASPECT - JAR_SIZE * 0.2, JAR_SIZE * 0.22, JAR_SIZE * 0.22,
+					if ((Number(i) === 0 || Number(i) === 2) && healFade > 0) jarfadeBox.draw(x, 1 * INVERSE_ASPECT - JAR_SIZE * 0.2, JAR_SIZE * 0.22, JAR_SIZE * 0.22,
 						[0, 0.4, 1, healFade]);
 					// amount
-					if (v[i][1] > 0) colorBox.draw(x, 1 / ASPECT - JAR_SIZE * (0.2 - 0.08 * (1 - v[i][1] / 100)),
-						JAR_SIZE * 0.08, JAR_SIZE * 0.08 * v[i][1] / 100, v[i][2]);
+					if (v[i][1] > 0) colorBox.draw(x, 1 * INVERSE_ASPECT - JAR_SIZE * (0.2 - 0.08 * (1 - v[i][1] * 0.01)),
+						JAR_SIZE * 0.08, JAR_SIZE * 0.08 * v[i][1] * 0.01, v[i][2]);
 					// jar
-					jarBox.draw(      x, 1 / ASPECT - JAR_SIZE * 0.20, JAR_SIZE * 0.080, JAR_SIZE * 0.08);
-					txt.draw(v[i][0], x, 1 / ASPECT - JAR_SIZE * 0.06, JAR_SIZE * 0.050, JAR_SIZE * 1.00);
+					jarBox.draw(      x, 1 * INVERSE_ASPECT - JAR_SIZE * 0.20, JAR_SIZE * 0.080, JAR_SIZE * 0.08);
+					txt.draw(v[i][0], x, 1 * INVERSE_ASPECT - JAR_SIZE * 0.06, JAR_SIZE * 0.050, JAR_SIZE * 1.00);
 				}
 			}
 			// Texts
@@ -418,16 +418,16 @@ function Player(gl, shader, colorShader, textShader, LEVEL, menu, inventory, wor
 					txt.draw("R", 0.25, 0, BUTTONSIZE, 1, [0, 0, 0, 1]);
 				}
 				else if (recharge <= 0) {
-					if      (air < 5)  txt.draw("RECHARGE!", -0.55, 0.50 / ASPECT, 0.07, 1.05);
-					else if (air < 20) txt.draw("RECHARGE!", -0.60, 0.55 / ASPECT, 0.06, 1.05, 0.8);
+					if      (air < 5)  txt.draw("RECHARGE!", -0.55, 0.50 * INVERSE_ASPECT, 0.07, 1.05);
+					else if (air < 20) txt.draw("RECHARGE!", -0.60, 0.55 * INVERSE_ASPECT, 0.06, 1.05, 0.8);
 				}
 				if (gunText > 0) txt.draw(gun.name, 0, 0, 0.07, 1.15, gunText * 1.2);
-				txt.draw(gun.name, 0.55, 0.9 / ASPECT, 0.045, mix(3, 15, 1.1, 0.8, gun.name.length));
+				txt.draw(gun.name, 0.55, 0.9 * INVERSE_ASPECT, 0.045, mix(3, 15, 1.1, 0.8, gun.name.length));
 				if (minGun !== maxGun) {
-					buttonBox.draw(0.18, 0.9 / ASPECT, BUTTONSIZE, BUTTONSIZE, gunSelection === minGun ? 0.2 : 0.5);
-					buttonBox.draw(0.92, 0.9 / ASPECT, BUTTONSIZE, BUTTONSIZE, gunSelection === maxGun ? 0.2 : 0.5);
-					txt.draw("Q", 0.18, 0.9 / ASPECT, BUTTONSIZE, 1, [0, 0, 0, gunSelection === minGun ? 0.4 : 1]);
-					txt.draw("E", 0.92, 0.9 / ASPECT, BUTTONSIZE, 1, [0, 0, 0, gunSelection === maxGun ? 0.4 : 1]);
+					buttonBox.draw(0.18, 0.9 * INVERSE_ASPECT, BUTTONSIZE, BUTTONSIZE, gunSelection === minGun ? 0.2 : 0.5);
+					buttonBox.draw(0.92, 0.9 * INVERSE_ASPECT, BUTTONSIZE, BUTTONSIZE, gunSelection === maxGun ? 0.2 : 0.5);
+					txt.draw("Q", 0.18, 0.9 * INVERSE_ASPECT, BUTTONSIZE, 1, [0, 0, 0, gunSelection === minGun ? 0.4 : 1]);
+					txt.draw("E", 0.92, 0.9 * INVERSE_ASPECT, BUTTONSIZE, 1, [0, 0, 0, gunSelection === maxGun ? 0.4 : 1]);
 				}
 			}
 		}

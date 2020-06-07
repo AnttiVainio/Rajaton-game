@@ -27,24 +27,30 @@ function length(x1, y1, x2, y2) {
 	return Math.sqrt(x1 * x1 + y1 * y1);
 }
 
+function lengthSquared(x1, y1, x2, y2) {
+	if (x2 !== undefined) return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
+	return x1 * x1 + y1 * y1;
+}
+
 function getNormal(dx, dy, w = 1) {
-	const l = length(dx, dy);
-	return [dy / l * w, -dx / l * w];
+	const l = w / length(dx, dy);
+	return [dy * l, -dx * l];
 }
 
-function distanceToLine(x, y, x1, y1, x2, y2) {
-	if (x1 === x2) return Math.abs(x - x1);
-	const a = (y1 - y2) / (x2 - x1);
-	const c = (y2 - y1) * x1 / (x2 - x1) - y1;
-	return Math.abs(a * x + y + c) / Math.sqrt(a * a + 1);
+function distanceToLineSquared(x, y, x1, y1, x2, y2) {
+	if (x2 - x1 === 0) return (x - x1) * (x - x1);
+	const div = 1 / (x2 - x1);
+	const a = (y1 - y2) * div;
+	const c = (y2 - y1) * x1 * div - y1;
+	return (a * x + y + c) * (a * x + y + c) / (a * a + 1);
 }
 
-function distanceToFiniteLine(x, y, x1, y1, x2, y2) {
-	const d = distanceToLine(x, y, x1, y1, x2, y2);
-	const l = length(x1, y1, x2, y2);
-	const l1 = length(x, y, x1, y1);
-	const l2 = length(x, y, x2, y2);
-	const maxl = length(d, l);
+function distanceToFiniteLineSquared(x, y, x1, y1, x2, y2) {
+	const d = distanceToLineSquared(x, y, x1, y1, x2, y2);
+	const l = lengthSquared(x1, y1, x2, y2);
+	const l1 = lengthSquared(x, y, x1, y1);
+	const l2 = lengthSquared(x, y, x2, y2);
+	const maxl = d + l;
 	if (l1 > maxl || l2 > maxl) return Math.min(l1, l2);
 	return d;
 }
